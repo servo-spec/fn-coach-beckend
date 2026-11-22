@@ -114,19 +114,56 @@ def stats_week():
     total = sum(m for _, m in rows)
     return jsonify({"items": items, "total": total})
 
+# ... (начало файла, импорты и Flask-роуты оставляем без изменений) ...
+
 # ============ БОТ ============
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
 async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    # Кнопка для открытия Mini App
+    # ВАЖНО: Замени ссылку ниже на свою ссылку GitHub Pages (где лежит index.html)!
+    WEBAPP_URL = "https://ТВОЙ_НИК.github.io/ТВОЙ_РЕПОЗИТОРИЙ/" 
+    
+    keyboard = [
+        [InlineKeyboardButton("🎮 Открыть Mini App", web_app={"url": WEBAPP_URL})]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
     await update.message.reply_text(
         "Привет! Я твой тренер по Fortnite 🎮\n"
-        "Открой Mini App через кнопку меню.",
-        reply_markup=None
+        "Нажми на кнопку ниже, чтобы открыть приложение, или используй команды:\n"
+        "/mistake — добавить ошибку\n"
+        "/stats — посмотреть статистику",
+        reply_markup=reply_markup
     )
+
+async def add_mistake_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    # Просто даем инструкцию, так как диалоги требуют ConversationHandler
+    await update.message.reply_text("Чтобы добавить ошибку, лучше используй Mini App (там есть поле ввода).")
+
+async def stats_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    rows = db.week_stats()
+    if not rows:
+        await update.message.reply_text("Пока нет записей за неделю.")
+        return
+    text = "📊 *За неделю:*\n\n"
+    total = 0
+    for t, mins in rows:
+        text += f"• {t}: {mins} мин\n"
+        total += mins
+    text += f"\n*Итого: {total} мин*"
+    await update.message.reply_text(text, parse_mode="Markdown")
 
 def run_bot():
     application = Application.builder().token(TOKEN).build()
+    # Добавляем обработчики команд
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("mistake", add_mistake_cmd))
+    application.add_handler(CommandHandler("stats", stats_cmd))
+    
     application.run_polling()
 
+# ... (блок if __name__ == "__main__": оставляем без изменений) ...
 # ============ ЗАПУСК ============
 if __name__ == "__main__":
     db.init()
