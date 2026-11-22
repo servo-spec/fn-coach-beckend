@@ -2,6 +2,7 @@ import os
 import threading
 import random
 import datetime
+from flask_cors import CORS
 from flask import Flask, request, jsonify
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes
@@ -11,6 +12,7 @@ TOKEN = os.environ.get("TELEGRAM_TOKEN", "ВАШ_ТОКЕН")
 WEBAPP_URL = "https://servo-spec.github.io/fn-coach/"
 
 app = Flask(__name__)
+CORS(app)
 
 @app.route('/')
 @app.route('/health')
