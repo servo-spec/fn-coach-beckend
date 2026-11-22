@@ -106,11 +106,32 @@ TRAININGS = {
 
 RANKED_ADVICE = [
     "Unreal требует стабильности. Если проиграл 2 игры подряд — стоп на 30 минут.",
-    "Ты не апнешь ранг, если будешь играть на автомате. В каждой игре ставь микро-цель (например, не умирать в первые 5 минут).",
+    "Ты не апнешь ранг, если будешь играть на автомате. В каждой игре ставь микро-цель.",
     "Не меняй точку высадки. Стабильность дает понимание таймингов и лута.",
     "Тильт — твой главный враг. Вышел из себя — закрыл игру. Это дисциплина.",
     "Смотри не на свой ранг, а на свой прогресс. Ты стал лучше строиться? Уже победа."
 ]
+
+# ============ БАЗА СОВЕТОВ ПО ОШИБКАМ ============
+# Здесь мы ищем ключевые слова в ошибке игрока и даем совет
+TIPS_DB = {
+    "снайпер": "🎯 Совет: Никогда не стой в открытом поле. Всегда держи в голове укрытие (дерево, камень, холм). Если тебя простреливают — строй стену мгновенно, не жди, пока прилетит вторая пуля.",
+    "зажат": "📦 Совет: Если тебя зажали в 1x1 или коробке, не паникуй. Сломай пол и упади вниз, либо делай 'водопад' (waterfall) вниз. Главное — двигайся, а не стой на месте. Научись делать быстрый 90s, чтобы уходить на высоту.",
+    "высот": "🏔️ Совет: Высота — это 80% победы в ранкеде. Если ты внизу, а враг сверху — ты в проигрышной позиции. Строй рампы в сторону, уходи из-под обстрела, и пытайся зайти ему в бок.",
+    "промах": "🎯 Совет: Промахи — это либо слишком высокая чувствительность (сенса), либо отсутствие разминки. Снизь сенсу на 10%, поиграй в Aim Lab 15 минут перед игрой. И не стреляй на бегу — остановись на долю секунды.",
+    "тильт": "🧘 Совет: Тильт убивает ранг. Если чувствуешь злость — закрывай игру. Лучше сделать перерыв 30 минут и выпить воды, чем слить 5 матчей подряд на эмоциях.",
+    "ротаци": "🗺️ Совет: Не беги в центр круга. Двигайся по краю, используй естественные укрытия. Всегда оставляй себе путь отхода (стройку).",
+    "хп": "🩹 Совет: Не забегай в бой с 50 HP. Всегда долечивайся до 100+ щита перед тем, как стрелять. Если нет щитов — играй пассивно, фарми ресурсы.",
+    "дробовик": "🔫 Совет: В ближнем бою (дробовик) главное — не промазать первым выстрелом. Делай флик (резкий разворот) и стреляй в голову. Тренируй это в Creative.",
+    "лава": "🌋 Совет: Не прыгай в лаву/воду без необходимости. Это ловушка. Если тебя туда скинули — сразу строй стену под себя, чтобы не утонуть."
+}
+
+def get_advice_for_mistake(text):
+    text = text.lower()
+    for key, advice in TIPS_DB.items():
+        if key in text:
+            return advice
+    return "🤔 Совет: Проанализируй этот момент в реплее. Что ты мог сделать иначе? Запиши решение и применяй в следующем матче."
 
 # ============ МЕНЮ ============
 def main_menu():
@@ -118,6 +139,7 @@ def main_menu():
         [InlineKeyboardButton("📋 План на сегодня", callback_data="today")],
         [InlineKeyboardButton("📅 Неделя", callback_data="week"), InlineKeyboardButton("📊 Мой прогресс", callback_data="stats")],
         [InlineKeyboardButton("🧠 Дневник ошибок", callback_data="mistakes")],
+        [InlineKeyboardButton("💡 База знаний", callback_data="knowledge")],
         [InlineKeyboardButton("🏆 Иду в ранкед", callback_data="ranked_ready")]
     ]
     return InlineKeyboardMarkup(kb)
@@ -129,7 +151,7 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "Твой путь до анрила тренируйся каждый день.\n\n"
         "Вот твой инструментарий:\n"
         "1️⃣ Смотри план на сегодня и выполняй его.\n"
-        "2️⃣ Записывай ошибки (через /mistake).\n"
+        "2️⃣ Записывай ошибки (через /mistake). Я дам совет, как их исправить.\n"
         "3️⃣ Отмечай тренировки (через /log).\n\n"
         "Начнем?"
     )
@@ -188,16 +210,27 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     elif data == "mistakes":
         mistakes = get_mistakes(user_id)
         if not mistakes:
-            text = "🧠 *Дневник ошибок*\n\nТвой дневник пуст. Чтобы стать лучше, ты должен знать свои слабые места. Напиши /mistake, чтобы добавить ошибку."
+            text = "🧠 *Дневник ошибок*\n\nТвой дневник пуст. Напиши /mistake, чтобы добавить ошибку и получить совет."
         else:
-            text = "🧠 *Твои ошибки (работай над ними):*\n\n"
+            text = "🧠 *Твои ошибки (и советы):*\n\n"
             for m_id, m_text in mistakes:
-                text += f"❌ {m_text}\n"
-            text += "\n_Добавить новую ошибку: /mistake_"
+                text += f"❌ _{m_text}_\n"
+                text += f"{get_advice_for_mistake(m_text)}\n\n"
+            text += "Добавить новую: /mistake"
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=main_menu())
+
+    elif data == "knowledge":
+        text = (
+            "💡 *База знаний тренера*\n\n"
+            "Топ-3 правила для аппа ранга:\n\n"
+            "1️⃣ *Играй на выживание, а не на киллы.* В ранкеде победа дает больше очков, чем 5 киллов и смерть на 20 месте.\n\n"
+            "2️⃣ *Всегда долечивайся.* Здоровье важнее лута. Если у тебя 50 HP — ты не имеешь права идти в бой.\n\n"
+            "3️⃣ *Держи высоту.* В Форточке тот, кто сверху — диктует правила игры. Учись делать быстрый 90s.\n\n"
+            "_Используй /mistake, чтобы получить совет по конкретной проблеме._"
+        )
         await q.edit_message_text(text, parse_mode="Markdown", reply_markup=main_menu())
 
 # ============ КОМАНДЫ ============
-# Добавление ошибки (Диалог)
 async def add_mistake_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("📝 Напиши, какую ошибку ты понял (например: 'умираю от снайперов в открытом поле'):")
     return 1
@@ -205,10 +238,14 @@ async def add_mistake_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def save_mistake(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     add_mistake(update.message.from_user.id, text)
-    await update.message.reply_text(f"✅ Ошибка записана:\n_{text}_\n\nТеперь работай над ней в ранкеде.", parse_mode="Markdown")
+    advice = get_advice_for_mistake(text)
+    
+    await update.message.reply_text(
+        f"✅ Ошибка записана:\n_{text}_\n\n{advice}\n\n_Теперь работай над ней в ранкеде._", 
+        parse_mode="Markdown"
+    )
     return ConversationHandler.END
 
-# Лог тренировки (Диалог)
 async def log_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     kb = [
         [InlineKeyboardButton("🎯 Аим", callback_data="log_aim"), InlineKeyboardButton("🏗️ Билд", callback_data="log_build")],
@@ -229,12 +266,9 @@ def run_bot():
     print("=== БОТ ЗАПУСКАЕТСЯ ===", flush=True)
     try:
         application = Application.builder().token(TOKEN).build()
-        
-        # Обработчик кнопок
         application.add_handler(CommandHandler("start", start))
         application.add_handler(CallbackQueryHandler(button_handler))
 
-        # Обработчик ошибок
         conv_mistake = ConversationHandler(
             entry_points=[CommandHandler("mistake", add_mistake_start)],
             states={1: [MessageHandler(filters.TEXT & ~filters.COMMAND, save_mistake)]},
@@ -242,7 +276,6 @@ def run_bot():
         )
         application.add_handler(conv_mistake)
 
-        # Обработчик логов
         conv_log = ConversationHandler(
             entry_points=[CommandHandler("log", log_start)],
             states={1: [CallbackQueryHandler(save_log)]},
@@ -260,7 +293,6 @@ if __name__ == "__main__":
     print("=== СТАРТ FLASK ===", flush=True)
     init_db()
     
-    # Flask в фоне (чтобы Render видел порт)
     app_flask = Flask(__name__)
     @app_flask.route('/')
     def health(): return "Bot is running", 200
@@ -272,5 +304,4 @@ if __name__ == "__main__":
     )
     flask_thread.start()
     
-    # Бот в главном потоке
     run_bot()
