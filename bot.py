@@ -1,15 +1,19 @@
 import os
 import threading
+import random
+import datetime
 from flask import Flask, request, jsonify
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes
 import database as db
-import random
 
 # ============ НАСТРОЙКА ============
 TOKEN = os.environ.get("TELEGRAM_TOKEN", "ВАШ_ТОКЕН")
 
-# ============ FLASK (для Render) ============
+# Ссылка на твой GitHub Pages (обязательно поменяй на свою!)
+WEBAPP_URL = "https://servo-spec.github.io/fn-coach/"
+
+# ============ FLASK ============
 app = Flask(__name__)
 
 @app.route('/')
@@ -18,11 +22,6 @@ def health():
     return "Bot is running", 200
 
 # ============ API ДЛЯ MINI APP ============
-# Простая проверка: берём user_id из заголовка, который шлёт фронт
-def get_user_id():
-    # В идеале тут надо проверять подпись initData, но для старта сойдёт
-    return request.headers.get("X-Telegram-Init-Data", "anonymous")
-
 TRAININGS = {
     "aim": {"name": "🎯 Аим и стрельба", "steps": [
         {"text": "Разминка: Creative 1v1 / Aim Lab", "time": "10 мин"},
@@ -59,7 +58,6 @@ RANKED_ADVICE = [
 
 @app.route('/api/training/today')
 def training_today():
-    import datetime
     keys = ["aim","build","game_sense","ranked","aim","build","rest"]
     k = keys[datetime.date.today().weekday()]
     if k == "rest":
@@ -114,16 +112,8 @@ def stats_week():
     total = sum(m for _, m in rows)
     return jsonify({"items": items, "total": total})
 
-# ... (начало файла, импорты и Flask-роуты оставляем без изменений) ...
-
 # ============ БОТ ============
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-
 async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    # Кнопка для открытия Mini App
-    # ВАЖНО: Замени ссылку ниже на свою ссылку GitHub Pages (где лежит index.html)!
-    WEBAPP_URL = "https://ТВОЙ_НИК.github.io/ТВОЙ_РЕПОЗИТОРИЙ/" 
-    
     keyboard = [
         [InlineKeyboardButton("🎮 Открыть Mini App", web_app={"url": WEBAPP_URL})]
     ]
@@ -132,14 +122,13 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Привет! Я твой тренер по Fortnite 🎮\n"
         "Нажми на кнопку ниже, чтобы открыть приложение, или используй команды:\n"
-        "/mistake — добавить ошибку\n"
-        "/stats — посмотреть статистику",
+        "/mistake — инструкция по добавлению ошибки\n"
+        "/stats — посмотреть статистику за неделю",
         reply_markup=reply_markup
     )
 
 async def add_mistake_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    # Просто даем инструкцию, так как диалоги требуют ConversationHandler
-    await update.message.reply_text("Чтобы добавить ошибку, лучше используй Mini App (там есть поле ввода).")
+    await update.message.reply_text("Чтобы добавить ошибку, открой Mini App (там есть поле ввода в разделе 'Ошибки').")
 
 async def stats_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     rows = db.week_stats()
@@ -155,19 +144,27 @@ async def stats_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text, parse_mode="Markdown")
 
 def run_bot():
-    application = Application.builder().token(TOKEN).build()
-    # Добавляем обработчики команд
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("mistake", add_mistake_cmd))
-    application.add_handler(CommandHandler("stats", stats_cmd))
-    
-    application.run_polling()
+    print("=== БОТ ЗАПУСКАЕТСЯ В ФОНЕ ===")
+    try:
+        application = Application.builder().token(TOKEN).build()
+        application.add_handler(CommandHandler("start", start))
+        application.add_handler(CommandHandler("mistake", add_mistake_cmd))
+        application.add_handler(CommandHandler("stats", stats_cmd))
+        
+        print("=== БОТ УСПЕШНО СОЗДАН, НАЧИНАЮ ПОЛЛИНГ ===")
+        application.run_polling()
+    except Exception as e:
+        print(f"!!! ОШИБКА БОТА: {e} !!!")
 
-# ... (блок if __name__ == "__main__": оставляем без изменений) ...
 # ============ ЗАПУСК ============
 if __name__ == "__main__":
+    print("=== СТАРТ ПРИЛОЖЕНИЯ ===")
     db.init()
-    # Бот в отдельном потоке, чтобы Flask мог слушать порт
+    print("=== БАЗА ДАННЫХ ГОТОВА ===")
+    
+    # Запускаем бота в фоне
     threading.Thread(target=run_bot, daemon=True).start()
+    
     port = int(os.environ.get("PORT", 10000))
+    print(f"=== ЗАПУСК FLASK НА ПОРТУ {port} ===")
     app.run(host='0.0.0.0', port=port)
