@@ -8,7 +8,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 import database as db
 
 TOKEN = os.environ.get("TELEGRAM_TOKEN", "ВАШ_ТОКЕН")
-WEBAPP_URL = "https://ТВОЙ_НИК.github.io/ТВОЙ_РЕПОЗИТОРИЙ/"
+WEBAPP_URL = "https://servo-spec.github.io/fn-coach/"
 
 app = Flask(__name__)
 
