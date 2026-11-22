@@ -53,6 +53,16 @@ def run_bot():
 if __name__ == "__main__":
     print(">>> [0] СТАРТ ПРИЛОЖЕНИЯ (FLASK) <<<", flush=True)
     db.init()
-    threading.Thread(target=run_bot, daemon=True).start()
+    
+    # 1. Запускаем Flask в фоновом потоке (он просто слушает порт)
     port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
+    flask_thread = threading.Thread(
+        target=lambda: app.run(host='0.0.0.0', port=port, use_reloader=False), 
+        daemon=True
+    )
+    flask_thread.start()
+    print(f">>> FLASK ЗАПУЩЕН НА ПОРТУ {port} В ФОНЕ <<<", flush=True)
+    
+    # 2. Запускаем бота в ГЛАВНОМ потоке (чтобы он мог настроить сигналы)
+    print(">>> [1] БОТ ЗАПУСКАЕТСЯ В ГЛАВНОМ ПОТОКЕ <<<", flush=True)
+    run_bot()  # <-- Вызываем напрямую, без threading.Thread!
