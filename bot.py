@@ -262,6 +262,43 @@ async def save_log(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await q.edit_message_text(f"✅ Записал: {action}. Отдыхай, завтра продолжим.")
     return ConversationHandler.END
 
+# ============ ХЕНДЛЕРЫ ============
+async def add_mistake_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("📝 Напиши, какую ошибку ты понял (например: 'умираю от снайперов в открытом поле'):")
+    return 1
+
+async def save_mistake(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    add_mistake(update.message.from_user.id, text)
+    advice = get_advice_for_mistake(text)
+    
+    await update.message.reply_text(
+        f"✅ Ошибка записана:\n_{text}_\n\n{advice}\n\n_Теперь работай над ней в ранкеде._", 
+        parse_mode="Markdown"
+    )
+    return ConversationHandler.END
+
+async def log_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    kb = [
+        [InlineKeyboardButton("🎯 Аим", callback_data="log_aim"), InlineKeyboardButton("🏗️ Билд", callback_data="log_build")],
+        [InlineKeyboardButton("🧠 Теория", callback_data="log_theory"), InlineKeyboardButton("🏆 Ранкед", callback_data="log_ranked")]
+    ]
+    await update.message.reply_text("Что ты сегодня отработал?", reply_markup=InlineKeyboardMarkup(kb))
+    return 1
+
+async def save_log(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    await q.answer()
+    action = q.data.replace("log_", "")
+    add_log(q.from_user.id, action)
+    await q.edit_message_text(f"✅ Записал: {action}. Отдыхай, завтра продолжим.")
+    return ConversationHandler.END
+
+# --- НОВАЯ ФУНКЦИЯ ОТМЕНЫ ---
+async def cancel(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Действие отменено. Возвращайся в меню через /start.")
+    return ConversationHandler.END
+
 def run_bot():
     print("=== БОТ ЗАПУСКАЕТСЯ ===", flush=True)
     try:
@@ -269,17 +306,19 @@ def run_bot():
         application.add_handler(CommandHandler("start", start))
         application.add_handler(CallbackQueryHandler(button_handler))
 
+        # Обработчик ошибок (с отменой)
         conv_mistake = ConversationHandler(
             entry_points=[CommandHandler("mistake", add_mistake_start)],
             states={1: [MessageHandler(filters.TEXT & ~filters.COMMAND, save_mistake)]},
-            fallbacks=[]
+            fallbacks=[CommandHandler("cancel", cancel)] 
         )
         application.add_handler(conv_mistake)
 
+        # Обработчик логов (с отменой)
         conv_log = ConversationHandler(
             entry_points=[CommandHandler("log", log_start)],
             states={1: [CallbackQueryHandler(save_log)]},
-            fallbacks=[]
+            fallbacks=[CommandHandler("cancel", cancel)] 
         )
         application.add_handler(conv_log)
 
@@ -287,21 +326,3 @@ def run_bot():
         application.run_polling()
     except Exception as e:
         print(f"!!! ОШИБКА БОТА: {e} !!!", flush=True)
-
-# ============ ЗАПУСК ============
-if __name__ == "__main__":
-    print("=== СТАРТ FLASK ===", flush=True)
-    init_db()
-    
-    app_flask = Flask(__name__)
-    @app_flask.route('/')
-    def health(): return "Bot is running", 200
-    
-    port = int(os.environ.get("PORT", 10000))
-    flask_thread = threading.Thread(
-        target=lambda: app_flask.run(host='0.0.0.0', port=port, use_reloader=False), 
-        daemon=True
-    )
-    flask_thread.start()
-    
-    run_bot()
