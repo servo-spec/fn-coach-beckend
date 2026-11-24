@@ -321,3 +321,26 @@ def run_bot():
         application.run_polling(stop_signals=None)
     except Exception as e:
         print(f"!!! ОШИБКА БОТА: {e} !!!", flush=True)
+if __name__ == "__main__":
+    print("=== СТАРТ ПРИЛОЖЕНИЯ ===", flush=True)
+    init_db()
+    
+    # 1. Запускаем Flask в ФОНОВОМ потоке (он просто слушает порт)
+    from flask import Flask
+    app_flask = Flask(__name__)
+    
+    @app_flask.route('/')
+    def health(): 
+        return "Bot is running", 200
+    
+    port = int(os.environ.get("PORT", 10000))
+    flask_thread = threading.Thread(
+        target=lambda: app_flask.run(host='0.0.0.0', port=port, use_reloader=False), 
+        daemon=True
+    )
+    flask_thread.start()
+    print(f">>> FLASK ЗАПУЩЕН НА ПОРТУ {port} В ФОНЕ <<<", flush=True)
+    
+    # 2. Запускаем БОТА в ГЛАВНОМ потоке
+    print(">>> БОТ ЗАПУСКАЕТСЯ В ГЛАВНОМ ПОТОКЕ <<<", flush=True)
+    run_bot()
