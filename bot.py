@@ -310,15 +310,18 @@ def run_bot():
         conv_mistake = ConversationHandler(
             entry_points=[CommandHandler("mistake", add_mistake_start)],
             states={1: [MessageHandler(filters.TEXT & ~filters.COMMAND, save_mistake)]},
-            fallbacks=[CommandHandler("cancel", cancel)] 
+            fallbacks=[CommandHandler("cancel", cancel)],
+            per_chat=True,  # Важно для работы диалогов
         )
         application.add_handler(conv_mistake)
 
-        # Обработчик логов (с отменой)
+        # Обработчик логов (с отменой и per_message=True)
         conv_log = ConversationHandler(
             entry_points=[CommandHandler("log", log_start)],
             states={1: [CallbackQueryHandler(save_log)]},
-            fallbacks=[CommandHandler("cancel", cancel)] 
+            fallbacks=[CommandHandler("cancel", cancel)],
+            per_message=True,  # <--- ВОТ ЭТО ИСПРАВЛЯЕТ КНОПКИ ВНУТРИ ДИАЛОГА!
+            per_chat=True,
         )
         application.add_handler(conv_log)
 
