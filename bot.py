@@ -256,12 +256,19 @@ async def log_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 async def save_log(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
-    await q.answer()
-    action = q.data.replace("log_", "")
-    add_log(q.from_user.id, action)
-    await q.edit_message_text(f"✅ Записал: {action}. Отдыхай, завтра продолжим.")
-    return ConversationHandler.END
-
+    await q.answer() # Убирает анимацию загрузки на кнопке
+    
+    try:
+        action = q.data.replace("log_", "")
+        print(f"ПОЛУЧЕН ЛОГ: {action} от {q.from_user.id}", flush=True)
+        
+        add_log(q.from_user.id, action)
+        
+        await q.edit_message_text(f"✅ Записал: {action}. Отдыхай, завтра продолжим.")
+    except Exception as e:
+        print(f"!!! ОШИБКА В ЛОГАХ: {e} !!!", flush=True)
+        # Если что-то пошло не так, бот хотя бы ответит, а не молчит
+        await q.edit_message_text(f"⚠️ Ошибка записи: {e}")
 # ============ ХЕНДЛЕРЫ ============
 async def add_mistake_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("📝 Напиши, какую ошибку ты понял (например: 'умираю от снайперов в открытом поле'):")
