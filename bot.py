@@ -162,6 +162,9 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await q.answer()
     user_id = q.from_user.id
     data = q.data
+    if data.startswith("log_"):
+    # Если это кнопка лога, отдаем её функции save_log
+    return await save_log(update, ctx)
 
     if data == "today":
         keys = ["aim", "build", "game_sense", "ranked", "aim", "build", "rest"]
@@ -316,6 +319,7 @@ def run_bot():
         
         # Обработчик для логов (просто ловит кнопки)
         application.add_handler(CommandHandler("log", log_start))
+        print("!!! ОБРАБОТЧИКИ ЗАГРУЖЕНЫ !!!", flush=True)
         application.add_handler(CallbackQueryHandler(save_log, pattern="^log_"))
 
         # Обработчик ошибок (диалог оставляем, он работал)
