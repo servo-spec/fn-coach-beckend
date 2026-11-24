@@ -298,18 +298,20 @@ async def save_log(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def cancel(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Действие отменено. Возвращайся в меню через /start.")
     return ConversationHandler.END
-
 def run_bot():
     print("=== БОТ ЗАПУСКАЕТСЯ ===", flush=True)
     try:
         application = Application.builder().token(TOKEN).build()
         
-        # Обработчик кнопок главного меню и логов
+        # Главное меню и кнопки
         application.add_handler(CommandHandler("start", start))
         application.add_handler(CallbackQueryHandler(button_handler))
+        
+        # Обработчик для логов (просто ловит кнопки)
+        application.add_handler(CommandHandler("log", log_start))
         application.add_handler(CallbackQueryHandler(save_log, pattern="^log_"))
 
-        # Обработчик ошибок (оставляем диалог, он работал)
+        # Обработчик ошибок (диалог оставляем, он работал)
         conv_mistake = ConversationHandler(
             entry_points=[CommandHandler("mistake", add_mistake_start)],
             states={1: [MessageHandler(filters.TEXT & ~filters.COMMAND, save_mistake)]},
