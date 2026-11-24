@@ -303,25 +303,19 @@ def run_bot():
     print("=== БОТ ЗАПУСКАЕТСЯ ===", flush=True)
     try:
         application = Application.builder().token(TOKEN).build()
+        
+        # Обработчик кнопок главного меню и логов
         application.add_handler(CommandHandler("start", start))
         application.add_handler(CallbackQueryHandler(button_handler))
+        application.add_handler(CallbackQueryHandler(save_log, pattern="^log_"))
 
+        # Обработчик ошибок (оставляем диалог, он работал)
         conv_mistake = ConversationHandler(
             entry_points=[CommandHandler("mistake", add_mistake_start)],
             states={1: [MessageHandler(filters.TEXT & ~filters.COMMAND, save_mistake)]},
             fallbacks=[CommandHandler("cancel", cancel)],
-            per_chat=True,
         )
         application.add_handler(conv_mistake)
-
-        # Для логов НЕ используем per_message=True, а полагаемся на CallbackQueryHandler
-        conv_log = ConversationHandler(
-            entry_points=[CommandHandler("log", log_start)],
-            states={1: [CallbackQueryHandler(save_log)]},
-            fallbacks=[CommandHandler("cancel", cancel)],
-            per_chat=True,
-        )
-        application.add_handler(conv_log)
 
         print("=== БОТ УСПЕШНО СОЗДАН ===", flush=True)
         application.run_polling()
