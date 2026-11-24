@@ -312,7 +312,7 @@ def run_bot():
         
         # Главное меню и кнопки
         application.add_handler(CommandHandler("start", start))
-        application.add_handler(CallbackQueryHandler(button_handler))
+        application.add_handler(CallbackQueryHandler(save_log))
         
         # Обработчик для логов (просто ловит кнопки)
         application.add_handler(CommandHandler("log", log_start))
