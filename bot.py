@@ -318,6 +318,6 @@ def run_bot():
         application.add_handler(conv_mistake)
 
         print("=== БОТ УСПЕШНО СОЗДАН ===", flush=True)
-        application.run_polling()
+        application.run_polling(stop_signals=None)
     except Exception as e:
         print(f"!!! ОШИБКА БОТА: {e} !!!", flush=True)
